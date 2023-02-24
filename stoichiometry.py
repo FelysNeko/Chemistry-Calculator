@@ -1,5 +1,6 @@
 from copy import deepcopy
 from time import time
+import itertools as it
 
 
 diatomic = ['O', 'N', 'H', 'F', 'Cl', 'I', 'Br']
@@ -23,11 +24,18 @@ def lookup(name=str) -> list:
 
 
 def expand(molecule=str):
-    if molecule[0].isdigit() is False:
-        molecule = '1' + molecule
+    try:
+        if not molecule[0].isdigit():
+            molecule = '1' + molecule
+    except TypeError:
+        print('Invalid Input')
+        return None
+    except IndexError:
+        print('Empty Input')
+        return None
 
     result = []
-    while '(' in molecule or molecule.isdigit() is False:
+    while '(' in molecule or not molecule.isdigit():
         if '(' in molecule:
             begin = molecule.find('(')
             end = molecule.find(')')
@@ -43,12 +51,13 @@ def expand(molecule=str):
         if information is not None:
             quantity = 1
             for i in range(end+1, len(molecule)+1):
-                if i == len(molecule) or molecule[i].isdigit() is False:
+                if i == len(molecule) or not molecule[i].isdigit():
                     break
             if molecule[end+1:i] != '':
                 quantity = int(molecule[end+1:i])
         else:
-            return False
+            print('Unable to find the atom or polyatomic molecule')
+            return None
 
         molecule = molecule[:begin] + molecule[i:]
         result.insert(0, [quantity, information])
@@ -79,12 +88,15 @@ class Molecule():
         self.bond = None
         self.mass = 0
 
-        if name is not None:
+        try:
             expansion = expand(name)
             self.coef = expansion[0]
             for each in expansion[1:]:
                 temp = Element(each[0], each[1][0], each[1][1])
                 self.atoms.append(temp)
+        except TypeError:
+            print('Unable to the read the input')
+            return None
 
         flag = 0
         for atom in self.atoms:
@@ -99,6 +111,12 @@ class Molecule():
             self.bond = 'organic'
 
 
+    def show(self):
+        print(f'Coefficient: {self.coef} | Bond: {self.bond} | Mass: {self.mass}')
+        for atom in self.atoms:
+            print(f'{atom.__dict__}')
+
+
     def weigh(self):
         self.mass = 0
         for atom in self.atoms:
@@ -106,10 +124,9 @@ class Molecule():
         self.mass *= self.coef
 
 
-    def show(self):
-        print(f'Coefficient: {self.coef} | Bond: {self.bond} | Mass: {self.mass}')
-        for atom in self.atoms:
-            print(f'{atom.__dict__}')
+    def digas(self):
+        if self.bond == 'single' and self.atoms[0].name in diatomic:
+            self.atoms[0].quantity = 2
 
 
     def rectify(self):
@@ -122,9 +139,9 @@ class Molecule():
                     self.atoms[1].charge = [self.atoms[1].charge[i]]
                     self.bond = '*ionic'
                     break
-        elif self.bond == 'single' and self.atoms[0].name in diatomic:
-            self.atoms[0].quantity = 2
+        self.digas()
         self.weigh()
+
 
     def form(self):
         if 'ionic' in self.bond:
@@ -134,6 +151,7 @@ class Molecule():
             self.atoms[0].quantity = int(abs(lcm / self.atoms[0].charge[0]))
             self.atoms[1].quantity = int(abs(lcm / self.atoms[1].charge[0]))
             self.bond = '*ionic'
+        self.digas()
         self.weigh()
 
 
@@ -144,16 +162,51 @@ class Equation():
         self.reaction = None
         self.counter = {}
 
-        for each in equation:
-            molecule = Molecule(each)
-            molecule.rectify()
-            self.comp.append(molecule)
+        try:
+            for each in equation:
+                molecule = Molecule(each)
+                molecule.rectify()
+                self.comp.append(molecule)
+        except TypeError:
+            return None
+        
+
+    def simple(self):
+        output = []
+        for molecule in self.comp:
+            name = str(molecule.coef)
+            for atom in molecule.atoms:
+                name += f'({atom.name}){atom.quantity}'
+            output.append(name)
+        return output
+
+
+    def refresh(self):
+        self.counter.clear()
+        for molecule in self.comp:
+            for atom in molecule.atoms:
+                if atom.structure is None:
+                    polyatomic = expand(atom.name)
+                    for each in polyatomic[1:]:
+                        count = each[0] * atom.quantity * molecule.coef
+                        if each[1][0] not in self.counter:
+                            self.counter[each[1][0]] = count
+                        else:
+                            self.counter[each[1][0]] += count
+                else:
+                    count = atom.quantity * molecule.coef
+                    if atom.name not in self.counter:
+                        self.counter[atom.name] = count
+                    else:
+                        self.counter[atom.name] += count
+
 
     def show(self):
         print('-' * 100)
-        print(f'{self.short} | {self.reaction}')
+        print(f'{self.short} | {self.reaction} | {self.counter}')
         for molecule in self.comp:
             molecule.show()
+
 
     def react(self):
         if len(self.comp) == 1 and len(self.comp[0].atoms) == 2:
@@ -193,7 +246,7 @@ class Equation():
         def combust():
             for molecule in self.short:
                 product = Equation(['H2O', 'CO2', 'SO2']) if 'S' in molecule else Equation(['H2O', 'CO2'])
-            return product
+                return product
                 
 
         def single():
@@ -234,10 +287,12 @@ class Equation():
             product = neutralize()
         elif self.reaction == 'double':
             product = double()
+        else:
+            product = None
     
         if product is not None:
-            for molecule in product.comp:
-                molecule.form()
+            for i in range(len(product.comp)):
+                product.comp[i].form()
 
             update = []
             for molecule in product.comp:
@@ -246,14 +301,47 @@ class Equation():
                     name += f'({atom.name}){atom.quantity}'
                 update.append(name)
             product.short = tuple(update)
+        else:
+            print('Unable to determine the reaction type')
 
         return product
 
 
-def balance(*args, max=20):
-    reactant = Equation([each for each in args])
-    product = reactant.predict()
+def balance(equation, max=10):
+    try:
+        reactant = Equation(equation)
+        product = reactant.predict()
+        length = len(reactant.comp) + len(product.comp)
+    except AttributeError:
+        print('Unable to balance the equation')
+        return None
+
+    for i in it.product(range(1, max+1), repeat=length):
+        reactant.comp[0].coef = i[0]
+        product.comp[0].coef = i[1]
+        if length >= 3:
+            if len(reactant.comp) == 2:
+                reactant.comp[1].coef = i[2]
+            else:
+                product.comp[1].coef = i[2]
+        if length >= 4:
+            product.comp[1].coef = i[3]
+        if length >= 5:
+            product.comp[2].coef = i[4]
+
+        reactant.refresh()
+        product.refresh()
+
+        if reactant.counter == product.counter:
+            for i in range(len(reactant.comp)):
+                reactant.comp[i].weigh()
+            for i in range(len(product.comp)):
+                product.comp[i].weigh()
+            return reactant, product
+    else:
+        print('Calculation failed')
 
 
 if __name__ == '__main__':
-    balance('Na(OH)', 'HCl')
+    equation = balance(['C6H14', 'O2'], max=30)
+    print(f'{equation[0].simple()} -> {equation[1].simple()}')
