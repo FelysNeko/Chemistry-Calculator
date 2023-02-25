@@ -1,5 +1,6 @@
 from copy import deepcopy
 from time import time
+import sys
 import itertools as it
 
 
@@ -7,6 +8,12 @@ diatomic = ['O', 'N', 'H', 'F', 'Cl', 'I', 'Br']
 activity = ['Li', 'K', 'Ba', 'Sr', 'Ca', 'Na', 'Mg', 'Al', 'Zn', 'Cr', 'Fe', 'Cd', 'Co', 'Ni', 'Sn', 'Pb', 'H', 'Cu', 'Hg', 'Ag', 'Pt', 'Au', 'F', 'Cl', 'Br', 'I']
 path = 'data.csv'
 table = {}
+text = '''------------
+MODE CODE[1]: Predict the reaction and balance the equation
+MODE CODE[2]: Provide a prediction of chemical reaction
+MODE CODE[3]: Calculate the mass of a molecule
+MODE CODE[4]: Showing detailed information of a molecule
+------------'''
 
 
 with open(path) as file:
@@ -28,10 +35,10 @@ def expand(molecule=str):
         if not molecule[0].isdigit():
             molecule = '1' + molecule
     except TypeError:
-        print('Invalid Input')
+        print('\033[0;31mError: Invalid Input\033[0m')
         return None
     except IndexError:
-        print('Empty Input')
+        print('\033[0;31mError: Empty Input\033[0m')
         return None
 
     result = []
@@ -45,7 +52,7 @@ def expand(molecule=str):
                 if each.isupper() is True:
                     break
             begin = molecule.find(each)
-            end = begin+1 if len(molecule) > 2 and molecule[begin+1].islower() is True else begin
+            end = begin+1 if len(molecule)-begin > 1 and molecule[begin+1].islower() is True else begin
             information = lookup(molecule[begin:end+1])
 
         if information is not None:
@@ -56,7 +63,7 @@ def expand(molecule=str):
             if molecule[end+1:i] != '':
                 quantity = int(molecule[end+1:i])
         else:
-            print('Unable to find the atom or polyatomic molecule')
+            print('\033[0;31mError: Unable to find the atom or polyatomic molecule\033[0m')
             return None
 
         molecule = molecule[:begin] + molecule[i:]
@@ -95,7 +102,7 @@ class Molecule():
                 temp = Element(each[0], each[1][0], each[1][1])
                 self.atoms.append(temp)
         except TypeError:
-            print('Unable to the read the input')
+            print('\033[0;31mError: Unable to the read the input\033[0m')
             return None
 
         flag = 0
@@ -114,7 +121,7 @@ class Molecule():
     def show(self):
         print(f'Coefficient: {self.coef} | Bond: {self.bond} | Mass: {self.mass}')
         for atom in self.atoms:
-            print(f'{atom.__dict__}')
+            print(f'\033[1;37m{atom.__dict__}\033[0m')
 
 
     def weigh(self):
@@ -169,16 +176,24 @@ class Equation():
                 self.comp.append(molecule)
         except TypeError:
             return None
-        
 
-    def simple(self):
+
+    def update(self):
         output = []
-        for molecule in self.comp:
-            name = str(molecule.coef)
+        flag = False
+        temp = deepcopy(self)
+        for molecule in temp.comp:
+            name = str(molecule.coef) if molecule.coef != 1 else ''
+            if molecule.atoms[0].charge[0] < 0 or molecule.bond == 'organic' and not flag:
+                molecule.atoms.reverse()
+                flag = True
             for atom in molecule.atoms:
-                name += f'({atom.name}){atom.quantity}'
+                name += f'({atom.name})' if atom.structure is None else atom.name
+                if atom.quantity != 1:
+                    name += str(atom.quantity)
+            flag = False
             output.append(name)
-        return output
+        self.short = tuple(output)
 
 
     def refresh(self):
@@ -202,7 +217,6 @@ class Equation():
 
 
     def show(self):
-        print('-' * 100)
         print(f'{self.short} | {self.reaction} | {self.counter}')
         for molecule in self.comp:
             molecule.show()
@@ -302,21 +316,22 @@ class Equation():
                 update.append(name)
             product.short = tuple(update)
         else:
-            print('Unable to determine the reaction type')
+            print('\033[0;31mError: Unable to determine the reaction type\033[0m')
 
         return product
 
 
-def balance(equation, max=10):
+def balance(equation, attemps=40):
     try:
         reactant = Equation(equation)
         product = reactant.predict()
         length = len(reactant.comp) + len(product.comp)
     except AttributeError:
-        print('Unable to balance the equation')
+        print('\033[0;31mError: Unable to balance the equation\033[0m')
         return None
 
-    for i in it.product(range(1, max+1), repeat=length):
+    count = 0
+    for i in it.product(range(1, attemps+1), repeat=length):
         reactant.comp[0].coef = i[0]
         product.comp[0].coef = i[1]
         if length >= 3:
@@ -332,16 +347,46 @@ def balance(equation, max=10):
         reactant.refresh()
         product.refresh()
 
+        count += 1
+        percent = count / attemps**length * 100
+        print('\r', end='')
+        print(f'>>> Progress: {count}/{attemps**length} [{round(percent, 1)}%]', end="")
+        sys.stdout.flush()
+
         if reactant.counter == product.counter:
             for i in range(len(reactant.comp)):
                 reactant.comp[i].weigh()
             for i in range(len(product.comp)):
                 product.comp[i].weigh()
+            reactant.update()
+            product.update()
+            print(' | \033[0;32mCalculation Finished\033[0m')
             return reactant, product
     else:
-        print('Calculation failed')
+        print(' | \033[0;31mCalculation Failed\033[0m')
 
 
 if __name__ == '__main__':
-    equation = balance(['C6H14', 'O2'], max=30)
-    print(f'{equation[0].simple()} -> {equation[1].simple()}')
+    print(text)
+    mode = input('Select Mode Code: ')
+    content = input('>>> Input Value(s): ').split(' ')
+    verify = input(f'>>> Confirmation: {content}? (y/n)')
+
+    if verify != 'n':
+        if mode == '1':
+            try:
+                equation = balance(content)
+                print(f'Equation: \033[1;37m{equation[0].short} >>> {equation[1].short}\033[0m')
+            except TypeError:
+                print('\033[1;31mWarning: Problems Occured\033[0m')
+        elif mode == '2':
+            equation = Equation(content)
+            equation.predict()
+            print(f'Reaction Type: \033[1;37m{equation.reaction}\033[0m')
+        elif mode == '3':
+            molecule = Molecule(content[0])
+            molecule.weigh()
+            print(f'Mass: \033[1;37m{round(molecule.mass, 2)}\033[0m')
+        elif mode == '4':
+            molecule = Equation(content)
+            molecule.show()
