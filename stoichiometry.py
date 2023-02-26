@@ -374,7 +374,7 @@ if __name__ == '__main__':
         if mode == '0':
             os.system('clear')
             break
-        elif mode in str([i for i in range(1,5)]):
+        elif mode in str([i for i in range(1,5)]) and mode != '':
             content = input('>>> Input Value: ').split(' ')
             verify = input(f'>>> Confirmation: {content} (y/n)')
 
