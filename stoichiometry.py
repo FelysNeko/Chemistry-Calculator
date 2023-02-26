@@ -368,8 +368,8 @@ def balance(equation, attemps=40):
 
 if __name__ == '__main__':
     os.system('clear')
+    print(text)
     while 1:
-        print(text)
         mode = input('Select Mode Code: ')
         if mode == '0':
             os.system('clear')
@@ -400,4 +400,7 @@ if __name__ == '__main__':
         clear = input('Clear screen? (y/n)')
         if clear != 'n':
             os.system('clear')
+            print(text)
+        else:
+            print('')
             
