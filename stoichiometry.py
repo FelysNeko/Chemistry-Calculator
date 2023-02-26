@@ -1,6 +1,5 @@
 from copy import deepcopy
-from time import time
-import sys
+import sys, os
 import itertools as it
 
 
@@ -8,12 +7,13 @@ diatomic = ['O', 'N', 'H', 'F', 'Cl', 'I', 'Br']
 activity = ['Li', 'K', 'Ba', 'Sr', 'Ca', 'Na', 'Mg', 'Al', 'Zn', 'Cr', 'Fe', 'Cd', 'Co', 'Ni', 'Sn', 'Pb', 'H', 'Cu', 'Hg', 'Ag', 'Pt', 'Au', 'F', 'Cl', 'Br', 'I']
 path = 'data.csv'
 table = {}
-text = '''------------
-MODE CODE[1]: Predict the reaction and balance the equation
-MODE CODE[2]: Provide a prediction of chemical reaction
-MODE CODE[3]: Calculate the mass of a molecule
-MODE CODE[4]: Showing detailed information of a molecule
-------------'''
+text = '''
+-> MODE CODE[1]: Predict the reaction and balance the equation
+-> MODE CODE[2]: Provide a prediction of chemical reaction
+-> MODE CODE[3]: Calculate the mass of a molecule
+-> MODE CODE[4]: Showing detailed information of a molecule
+-> EXIT CODE[0]: Quit program
+'''
 
 
 with open(path) as file:
@@ -367,26 +367,37 @@ def balance(equation, attemps=40):
 
 
 if __name__ == '__main__':
-    print(text)
-    mode = input('Select Mode Code: ')
-    content = input('>>> Input Value(s): ').split(' ')
-    verify = input(f'>>> Confirmation: {content}? (y/n)')
+    os.system('clear')
+    while 1:
+        print(text)
+        mode = input('Select Mode Code: ')
+        if mode == '0':
+            os.system('clear')
+            break
+        elif mode in str([i for i in range(1,5)]):
+            content = input('>>> Input Value: ').split(' ')
+            verify = input(f'>>> Confirmation: {content} (y/n)')
 
-    if verify != 'n':
-        if mode == '1':
-            try:
-                equation = balance(content)
-                print(f'Equation: \033[1;37m{equation[0].short} >>> {equation[1].short}\033[0m')
-            except TypeError:
-                print('\033[1;31mWarning: Problems Occured\033[0m')
-        elif mode == '2':
-            equation = Equation(content)
-            equation.predict()
-            print(f'Reaction Type: \033[1;37m{equation.reaction}\033[0m')
-        elif mode == '3':
-            molecule = Molecule(content[0])
-            molecule.weigh()
-            print(f'Mass: \033[1;37m{round(molecule.mass, 2)}\033[0m')
-        elif mode == '4':
-            molecule = Equation(content)
-            molecule.show()
+            if verify != 'n':
+                if mode == '1':
+                    equation = balance(content)
+                    if equation is not None:
+                        print(f'Equation: \033[1;37m{equation[0].short} >>> {equation[1].short}\033[0m')
+                elif mode == '2':
+                    equation = Equation(content)
+                    equation.predict()
+                    print(f'Reaction Type: \033[1;37m{equation.reaction}\033[0m')
+                elif mode == '3':
+                    molecule = Molecule(content[0])
+                    molecule.weigh()
+                    print(f'Mass: \033[1;37m{round(molecule.mass, 2)}\033[0m')
+                elif mode == '4':
+                    molecule = Equation(content)
+                    molecule.show()
+        else:
+            print('Command not found')
+        
+        clear = input('Clear screen? (y/n)')
+        if clear != 'n':
+            os.system('clear')
+            
