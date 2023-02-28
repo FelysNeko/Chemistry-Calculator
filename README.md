@@ -3,4 +3,9 @@
 Incomplete calculator which only solves Canadian grade 11 chemistry questions
 
 [UPDATE]
-The reconstruction is finally done, and that was so much work. The good thing is that the new version speed up from 2 times to 20 times compared to the old one - that's a lot of progress :)
+
+The reconstruction is already finally done! The program now works 2 to 20 times faster that the old version.
+
+A new command line interface is added, so that you can run it in terminal :)
+
+If I have time I will add new features related to stoichiometry such as yield, purity etc.
