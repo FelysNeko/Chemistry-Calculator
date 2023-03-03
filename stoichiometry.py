@@ -3,34 +3,34 @@ import sys, os
 import itertools as it
 
 
-diatomic = ['O', 'N', 'H', 'F', 'Cl', 'I', 'Br']
-activity = ['Li', 'K', 'Ba', 'Sr', 'Ca', 'Na', 'Mg', 'Al', 'Zn', 'Cr', 'Fe', 'Cd', 'Co', 'Ni', 'Sn', 'Pb', 'H', 'Cu', 'Hg', 'Ag', 'Pt', 'Au', 'F', 'Cl', 'Br', 'I']
-path = 'data.csv'
-table = {}
-text = '''
--> MODE CODE[1]: Predict the reaction and balance the equation
--> MODE CODE[2]: Provide a prediction of chemical reaction
--> MODE CODE[3]: Calculate the mass of a molecule
--> MODE CODE[4]: Showing detailed information of a molecule
+DIATOMIC = ['O', 'N', 'H', 'F', 'Cl', 'I', 'Br']
+ACTIVITY = ['Li', 'K', 'Ba', 'Sr', 'Ca', 'Na', 'Mg', 'Al', 'Zn', 'Cr', 'Fe', 'Cd', 'Co', 'Ni', 'Sn', 'Pb', 'H', 'Cu', 'Hg', 'Ag', 'Pt', 'Au', 'F', 'Cl', 'Br', 'I']
+PATH = 'data.csv'
+TABLE = {}
+TEXT = '''NOTE: THIS PROGRAM ONLY SUPPORT CHEM11 STOICHIOMETRY >_<
+-> MODE CODE[1]: Stoichiometry calulator (everything in gram)
+-> MODE CODE[2]: Balance equation automatically or manually
+-> MODE CODE[3]: Show detailed information of molecle(s)
+-> MODE CODE[4]: Calculate the molar mass of a molecule
 -> EXIT CODE[0]: Quit program
 '''
 
 
-with open(path) as file:
+with open(PATH) as file:
     for each in file.readlines():
         line = each.strip('\n').split(',')
         for i in range(1, len(line)-1):
             line[i] = float(line[i])
-        table[line[0]] = line[1:]
+        TABLE[line[0]] = line[1:]
 
 
-def lookup(name=str) -> list:
-    for element, data in table.items():
+def lookup(name):
+    for element, data in TABLE.items():
         if name == element:
             return [element, data]
 
 
-def expand(molecule=str):
+def expand(molecule):
     try:
         if not molecule[0].isdigit():
             molecule = '1' + molecule
@@ -121,7 +121,7 @@ class Molecule():
     def show(self):
         print(f'Coefficient: {self.coef} | Bond: {self.bond} | Mass: {self.mass}')
         for atom in self.atoms:
-            print(f'\033[1;37m{atom.__dict__}\033[0m')
+            print(f'\033[1m{atom.__dict__}\033[0m')
 
 
     def weigh(self):
@@ -132,7 +132,7 @@ class Molecule():
 
 
     def digas(self):
-        if self.bond == 'single' and self.atoms[0].name in diatomic:
+        if self.bond == 'single' and self.atoms[0].name in DIATOMIC:
             self.atoms[0].quantity = 2
 
 
@@ -175,7 +175,7 @@ class Equation():
                 molecule.rectify()
                 self.comp.append(molecule)
         except TypeError:
-            return None
+            print('\033[0;31mError: Unable to generate equation\033[0m')
 
 
     def update(self):
@@ -267,7 +267,7 @@ class Equation():
             if len(self.comp[0].atoms) > len(self.comp[1].atoms):
                 self.comp[0], self.comp[1] = self.comp[1], self.comp[0]
             product = deepcopy(self)
-            if activity.index(self.comp[0].atoms[0].name) < activity.index(self.comp[1].atoms[1].name):
+            if ACTIVITY.index(self.comp[0].atoms[0].name) < ACTIVITY.index(self.comp[1].atoms[1].name):
                 product.comp[0].atoms[0], product.comp[1].atoms[1] = product.comp[1].atoms[1], product.comp[0].atoms[0]
             return product
         
@@ -321,10 +321,10 @@ class Equation():
         return product
 
 
-def balance(equation, attemps=40):
+def balance(equation, product=None, attemps=40):
     try:
         reactant = Equation(equation)
-        product = reactant.predict()
+        product = reactant.predict() if product is None else Equation(product)
         length = len(reactant.comp) + len(product.comp)
     except AttributeError:
         print('\033[0;31mError: Unable to balance the equation\033[0m')
@@ -342,7 +342,10 @@ def balance(equation, attemps=40):
         if length >= 4:
             product.comp[1].coef = i[3]
         if length >= 5:
-            product.comp[2].coef = i[4]
+            if len(reactant.comp) == 3:
+                reactant.comp[2].coef = i[4]
+            else:
+                product.comp[2].coef = i[4]
 
         reactant.refresh()
         product.refresh()
@@ -350,7 +353,7 @@ def balance(equation, attemps=40):
         count += 1
         percent = count / attemps**length * 100
         print('\r', end='')
-        print(f'>>> Progress: {count}/{attemps**length} [{round(percent, 1)}%]', end="")
+        print(f'Progress: {count}/{attemps**length} [{round(percent, 1)}%]', end="")
         sys.stdout.flush()
 
         if reactant.counter == product.counter:
@@ -366,41 +369,152 @@ def balance(equation, attemps=40):
         print(' | \033[0;31mCalculation Failed\033[0m')
 
 
-if __name__ == '__main__':
-    os.system('clear')
-    print(text)
-    while 1:
-        mode = input('Select Mode Code: ')
-        if mode == '0':
-            os.system('clear')
-            break
-        elif mode in str([i for i in range(1,5)]) and mode != '':
+class Stoichiometry():
+    def __init__(self, equation):
+        self.molar = {}
+        self.temp ={}
+        self.limit = {}
+        self.excceed = None
+        self.liname = None
+
+        try:
+            for a in range(2):
+                for b in range(len(equation[a].comp)):
+                    self.molar[equation[a].short[b]] = equation[a].comp[b].mass
+        except TypeError:
+            print('\033[0;31mError: Unable to load the calculation\033[0m')
+
+    
+    def match(self, data):
+        for key, value in self.molar.items():
+            if expand(data[0])[1:] == expand(key)[1:]:
+                return data[1] / value
+    
+
+    def calculate(self, parameter):
+        if len(parameter) == 1:
+            times = self.match(parameter[0])
+            for key, value in self.molar.items():
+                self.temp[key] = round(value * times, 5)
+
+        elif len(parameter) == 2:
+            exratio = self.match(parameter[0])
+            liratio = self.match(parameter[1])
+            if exratio < liratio:
+                liratio = exratio
+                parameter[0], parameter[1] = parameter[1], parameter[0]
+
+            for key, value in self.molar.items():
+                self.limit[key] = round(value * liratio, 5)
+                if expand(key)[1:] == expand(parameter[0][0])[1:]:
+                    self.limit[key] = parameter[0][1]
+                    self.excceed = (parameter[0][0], parameter[0][1] - round(value * liratio, 5))
+            self.liname = parameter[1][0]
+        else:
+            print('\033[0;31mError: Too many or less input\033[0m')
+
+
+class Console():
+    def get(self):
+        while True:
             content = input('>>> Input Value: ').split(' ')
             verify = input(f'>>> Confirmation: {content} (y/n)')
-
             if verify != 'n':
-                if mode == '1':
-                    equation = balance(content)
-                    if equation is not None:
-                        print(f'Equation: \033[1;37m{equation[0].short} >>> {equation[1].short}\033[0m')
-                elif mode == '2':
-                    equation = Equation(content)
-                    equation.predict()
-                    print(f'Reaction Type: \033[1;37m{equation.reaction}\033[0m')
-                elif mode == '3':
-                    molecule = Molecule(content[0])
-                    molecule.weigh()
-                    print(f'Mass: \033[1;37m{round(molecule.mass, 2)}\033[0m')
-                elif mode == '4':
-                    molecule = Equation(content)
-                    molecule.show()
+                return content
+
+
+    def mass(self):
+        parameter = self.get()
+        molecule = Molecule(parameter[0])
+        molecule.weigh()
+        print(f'Mass: \033[1m{round(molecule.mass, 2)}\033[0m')
+
+
+    def show(self):
+        parameter = self.get()
+        molecule = Equation(parameter)
+        molecule.show()
+
+
+    def solve(self):
+        auto = input('>>> Auto mode? (y/n)')
+        if auto != 'n':
+            parameter = self.get()
+            equation = balance(parameter)
+        else:
+            reactant = input('>>> Reactant: ').split(' ')
+            product = input('>>> Product: ').split(' ')
+            equation = balance(reactant, product)
+            
+        if equation is not None:
+            print(f'Equation: \033[1m{equation[0].short} >>> {equation[1].short}\033[0m')
+        
+
+    def stoichi(self):
+        auto = input('>>> Auto mode? (y/n)')
+        if auto != 'n':
+            parameter = self.get()
+            equation = balance(parameter)
+        else:
+            reactant = Equation(input('>>> Reactant: ').split(' '))
+            product = Equation(input('>>> Product: ').split(' '))
+            for i in range(len(reactant.comp)):
+                reactant.comp[i].weigh()
+            for i in range(len(product.comp)):
+                product.comp[i].weigh()
+            equation = (reactant, product)
+
+        if equation is not None:
+            print(f'Equation: \033[1m{equation[0].short} >>> {equation[1].short}\033[0m')
+            new = []
+            data = input('>>> Knowns: ').split(' ')
+            try:
+                for i in range(len(data)//2):
+                    new.append((data[i*2], int(data[i*2+1])))
+            except ValueError:
+                print('\033[0;31mError: Invalid value input\033[0m')
+
+            operation = Stoichiometry(equation)
+            operation.calculate(new)
+            if len(new) == 1 and len(operation.temp) > 0:
+                print(f'Mass Equation: \033[1m{operation.temp}\033[0m')
+            elif len(new) == 2:
+                print(f'Result: {operation.limit}')
+                print(f'Limiting Reactant: \033[1m{operation.liname}\033[0m')
+                print(f'[{operation.excceed[0]}] excceed: \033[1m{operation.excceed[1]}\033[0m')
+            else:
+                print('\033[0;31mCalculation Failed\033[0m')
+            
+    
+def main():
+    os.system('clear')
+    print(TEXT)
+
+    while True:
+        mode = input('>>> Select Mode Code: ')
+        console = Console()
+        if mode == '1':
+            console.stoichi()
+        elif mode == '2':
+            console.solve()
+        elif mode == '3':
+            console.show()
+        elif mode == '4':
+            console.mass()
+        elif mode == '0':
+            os.system('clear')
+            break
         else:
             print('Command not found')
-        
-        clear = input('Clear screen? (y/n)')
+
+        clear = input('>>> Clear screen? (y/n)')
         if clear != 'n':
             os.system('clear')
-            print(text)
+            print(TEXT)
         else:
             print('')
             
+
+if __name__ == '__main__':
+    main()
+    
