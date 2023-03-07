@@ -5,7 +5,7 @@ import itertools as it
 
 DIATOMIC = ['O', 'N', 'H', 'F', 'Cl', 'I', 'Br']
 ACTIVITY = ['Li', 'K', 'Ba', 'Sr', 'Ca', 'Na', 'Mg', 'Al', 'Zn', 'Cr', 'Fe', 'Cd', 'Co', 'Ni', 'Sn', 'Pb', 'H', 'Cu', 'Hg', 'Ag', 'Pt', 'Au', 'F', 'Cl', 'Br', 'I']
-PATH = 'data.csv'
+PATH = '/Users/jhannykin/Files/Computing/Python/Stoichiometry/data.csv'
 TABLE = {}
 TEXT = '''NOTE: THIS PROGRAM ONLY SUPPORT CHEM11 STOICHIOMETRY >_<
 -> MODE CODE[1]: Stoichiometry calulator (everything in gram)
@@ -353,7 +353,7 @@ def balance(equation, product=None, attemps=40):
         count += 1
         percent = count / attemps**length * 100
         print('\r', end='')
-        print(f'Progress: {count}/{attemps**length} [{round(percent, 1)}%]', end="")
+        print(f'Progress: {count}/{attemps**length} [{round(percent, 1)}%]', end='')
         sys.stdout.flush()
 
         if reactant.counter == product.counter:
@@ -384,11 +384,26 @@ class Stoichiometry():
         except TypeError:
             print('\033[0;31mError: Unable to load the calculation\033[0m')
 
-    
+
+    def convert(self, data):
+        try:
+            real = float(data[1].split('m')[0])
+            molar = expand(data[0])[1][1][1][1]
+        except ValueError:
+            print('\033[0;31mError: Invalid Input\033[0m')
+            return 0
+        else:
+            return real * molar if 'm' in data[1] else data[1]
+
+
     def match(self, data):
         for key, value in self.molar.items():
-            if expand(data[0])[1:] == expand(key)[1:]:
-                return data[1] / value
+            try:
+                if expand(data[0])[1:] == expand(key)[1:]:
+                    return self.convert(data) / value
+            except TypeError:
+                print('\033[0;31mError: Input molecule not found\033[0m')
+                return 0
     
 
     def calculate(self, parameter):
@@ -398,6 +413,7 @@ class Stoichiometry():
                 self.temp[key] = round(value * times, 5)
 
         elif len(parameter) == 2:
+            print('\033[0;33mNote: Make sure the two inputs are reactants\033[0m')
             exratio = self.match(parameter[0])
             liratio = self.match(parameter[1])
             if exratio < liratio:
@@ -407,8 +423,9 @@ class Stoichiometry():
             for key, value in self.molar.items():
                 self.limit[key] = round(value * liratio, 5)
                 if expand(key)[1:] == expand(parameter[0][0])[1:]:
-                    self.limit[key] = parameter[0][1]
-                    self.excceed = (parameter[0][0], parameter[0][1] - round(value * liratio, 5))
+                    mass = self.convert((parameter[0][0], parameter[0][1]))
+                    self.limit[key] = mass
+                    self.excceed = (parameter[0][0], mass - round(value * liratio, 5))
             self.liname = parameter[1][0]
         else:
             print('\033[0;31mError: Too many or less input\033[0m')
@@ -467,10 +484,11 @@ class Console():
         if equation is not None:
             print(f'Equation: \033[1m{equation[0].short} >>> {equation[1].short}\033[0m')
             new = []
+            print('\033[0;33mNote: If unit in moles, add [m] after the figure\033[0m')
             data = input('>>> Knowns: ').split(' ')
             try:
                 for i in range(len(data)//2):
-                    new.append((data[i*2], int(data[i*2+1])))
+                    new.append((data[i*2], data[i*2+1]))
             except ValueError:
                 print('\033[0;31mError: Invalid value input\033[0m')
 
