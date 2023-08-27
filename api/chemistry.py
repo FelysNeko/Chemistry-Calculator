@@ -262,7 +262,7 @@ class Equation:
 
 
     def balance(self, manual=False, attemps=40):
-        product =  Equation(self.predict().short) if manual == False else Equation(manual)
+        product =  self.predict() if manual == False else Equation(manual)
         reactant = deepcopy(self)
         length = len(reactant.comp) + len(product.comp)
 
