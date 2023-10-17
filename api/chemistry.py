@@ -1,289 +1,232 @@
+from .data import *
 from copy import deepcopy
-from .database import Table
 import itertools as it
 
 
-def lookup(name):
-    for atom, data in Table.periodic.items():
-        if atom == name:
-            return data
-        
 
-def expand(molecule):
-    if not isinstance(molecule, str) or len(molecule) == 0:
-        return None
-    if not molecule[0].isdigit():
-        molecule = '1' + molecule
+def gcd(a:int, b:int) -> int:
+    if not a and b:
+        return b
+    elif a and not b:
+        return a
+    else:
+        return gcd(b, a%b)
 
-    result = []
-    while '(' in molecule or not molecule.isdigit():
-        if '(' in molecule:
-            begin = molecule.find('(')
-            end = molecule.find(')')
-            information = lookup(molecule[begin+1:end])
-        else:
-            for each in molecule:
-                if each.isupper() is True:
-                    break
-            begin = molecule.find(each)
-            end = begin+1 if len(molecule)-begin > 1 and molecule[begin+1].islower() is True else begin
-            information = lookup(molecule[begin:end+1])
 
-        if information is not None:
-            quantity = 1
-            for i in range(end+1, len(molecule)+1):
-                if i == len(molecule) or not molecule[i].isdigit():
-                    break
-            if molecule[end+1:i] != '':
-                quantity = int(molecule[end+1:i])
-        else:
-            return None
-        
-        molecule = molecule[:begin] + molecule[i:]
-        result.insert(0, [quantity, information])
 
-    result.insert(0, int(molecule))
-    return result
+def lcm(a:int, b:int) -> int:
+    return int(a*b/gcd(a,b))
+
 
 
 class Molecule:
-    def __init__(self, name) -> None:
-        self.atoms = []
-        self.coef = 1
-        
-        expansion = expand(name)
-        if expansion is not None:
-            for each in expansion[1:]:
-                each[1].qtt = each[0]
-                self.atoms.append(each[1])
-            self.coef = expansion[0]
+    def __init__(self, molecule:str) -> None:
+        coef, data = parse(molecule)
+        self.coef = coef
+        self.atoms = data
 
+    
+    def __eq__(self, __value: object) -> bool:
+        return (
+            self.coef == __value.coef and
+            self.atoms == __value.atoms
+        )
+        
 
     @property
-    def info(self):
+    def info(self) -> list:
         return [self.coef, [i.info for i in self.atoms]]
     
 
     @property
-    def short(self):
-        result = str(self.coef)
-        for each in self.atoms:
-            atom = f'({each.sym}){str(each.qtt)}'
-            result += atom
-        return result
+    def short(self) -> str:
+        num = lambda x: '' if x==1 else str(x)
+        par = lambda x: f'({x})' if x in Table.polyatomic else x
+        return num(self.coef) + ''.join([''.join([par(i.symbol), num(i.quantity)]) for i in self.atoms])
+
     
-
     @property
-    def mass(self):
-        return round(self.coef * sum([i.qtt * i.mass for i in self.atoms]), 4)
-    
-
-    @property
-    def solubility(self):
-        if len(self.atoms) == 2 and 'ionic' in self.bond:
-            for rules in Table.solubility:
-                neg = self.atoms[0].sym
-                pos = 'Hg2' if self.atoms[1].sym == 'Hg' and self.atoms[1].qtt == 2 else self.atoms[1].sym
-                if self.atoms[0].chrg[0] > 0:
-                    neg, pos = pos, neg
-
-                if neg in rules.neg and pos in rules.pos:
-                    return True
-            else:
-                return False
+    def mass(self) -> float:
+        return round(self.coef * sum([i.quantity*i.mass for i in self.atoms]), 4)
 
 
     @property
-    def bond(self):
-        flag = 0
-        for atom in self.atoms:
-            if atom.sym == 'C' or atom.sym == 'H':
-                flag += 1
+    def bond(self) -> str:
+        flag = sum([i.symbol=='C' or i.symbol=='H' for i in self.atoms])
         if flag >= 2:
             return 'organic'
         elif len(self.atoms) == 1:
             return 'single'
         elif len(self.atoms) == 2:
-            charge = self.atoms[0].chrg[0] * self.atoms[1].chrg[0]
-            if charge > 0:
+            charge = self.atoms[0].charge.head * self.atoms[1].charge.head
+            if charge >= 0:
                 return 'covalent'
             else:
-                total = sum([self.atoms[i].chrg[0] * self.atoms[i].qtt for i in range(2)])
-                return '*ionic' if total == 0 else 'ionic'
+                total = sum([self.atoms[i].charge.head * self.atoms[i].quantity for i in range(2)])
+                return 'ionic' if total else '*ionic'
+        else:
+            return 'unknown'
+
+
+    @property
+    def solubility(self) -> bool:
+        if len(self.atoms)==2 and 'ionic' in self.bond:
+            pos, neg = self.atoms[0].symbol, self.atoms[1].symbol
+            pos = 'Hg2' if self.atoms[0].symbol=='Hg' and self.atoms[0].quantity==2 else pos
+            pos, neg = (neg, pos) if self.atoms[0].charge.head<0 else (pos, neg)
+
+            for rule in Table.solubility:
+                if pos in rule.positive and neg in rule.negative:
+                    return True
+            else:
+                return False
+        else:
+            return False
         
 
-    def rectify(self, flag=True):
-        temp = deepcopy(self)
-        if 'ionic' in temp.bond:
+    @staticmethod
+    def null(value:str) -> object:
+        return deepcopy(Molecule(value))
+    
+
+    @property
+    def count(self):
+        counter = {}
+        for each in self.atoms:
+            for key, value in each.count.items():
+                counter[key] = counter[key]+value if key in counter else value
+        result = {key:value*self.coef for key, value in counter.items()}
+        return result
+
+
+    def rectify(self, flag:bool=True) -> object:
+        if 'ionic' in self.bond:
+            if self.atoms[1].charge.head > 0:
+                self.atoms[0], self.atoms[1] = self.atoms[1], self.atoms[0]
             if flag is True:
-                if temp.atoms[0].chrg[0] > 0:
-                    temp.atoms[0], temp.atoms[1] = temp.atoms[1], temp.atoms[0]
-                charge = abs(temp.atoms[0].qtt * temp.atoms[0].chrg[0])
-                for i in range(len(temp.atoms[1].chrg)):
-                    if temp.atoms[1].chrg[i] * temp.atoms[1].qtt == charge:
-                        temp.atoms[1].chrg = [temp.atoms[1].chrg[i]]
-                        break
-            elif flag is False:
-                lcm = 1
-                while lcm % temp.atoms[0].chrg[0] or lcm % temp.atoms[1].chrg[0]:
-                    lcm += 1
-                temp.atoms[0].qtt = int(abs(lcm / temp.atoms[0].chrg[0]))
-                temp.atoms[1].qtt = int(abs(lcm / temp.atoms[1].chrg[0]))
-        elif temp.bond == 'single' and temp.atoms[0].sym in Table.diatomic:
-            temp.atoms[0].qtt = 2            
-        return temp
+                charge = self.atoms[1].charge.head * self.atoms[1].quantity / self.atoms[0].quantity
+                self.atoms[0].charge.match(charge)
+            else:
+                x = lcm(abs(self.atoms[0].charge.head), abs(self.atoms[1].charge.head))
+                self.atoms[0].quantity = abs(int(x/self.atoms[0].charge.head))
+                self.atoms[1].quantity = abs(int(x/self.atoms[1].charge.head))
+        elif self.bond=='single' and self.atoms[0].symbol in Table.diatomic:
+            self.atoms[0].quantity = 2
+        return self
+
 
 
 class Equation:
-    def __init__(self, equation) -> None:
-        self.comp = []
-        self.counter = {}
+    def __init__(self, equation:list) -> None:
+        self.molecule = [deepcopy(Molecule(i)) for i in equation]
+        
 
-        for each in equation:
-            parsed = Molecule(each).rectify(True)
-            self.comp.append(parsed)
+    def rectify(self, flag:bool=True) -> object:
+        for each in self.molecule:
+            each.rectify(flag)
+        return self
+
+
+    @staticmethod
+    def null(value:str) ->object:
+        return deepcopy(Equation(value))
 
 
     @property
-    def info(self):
-        return [i.info for i in self.comp]
+    def info(self) -> list:
+        return [i.info for i in self.molecule]
     
 
     @property
-    def short(self):
-        return [i.short for i in self.comp]
+    def short(self) -> list:
+        return [i.short for i in self.molecule]
     
 
     @property
-    def reaction(self):
-        if len(self.comp) == 1 and len(self.comp[0].atoms) == 2:
-            return 'decom'
-        elif len(self.comp) == 2:
-            if self.comp[0].bond == 'single' and self.comp[1].bond == 'single':
-                charge = self.comp[0].atoms[0].chrg[0] * self.comp[1].atoms[0].chrg[0]
-                return '*comb' if charge < 0 else 'comb'
-            
-            elif self.comp[0].bond == '*ionic' and self.comp[1].bond == '*ionic':
-                for i in range(2):
-                    if 'H' in self.short[0-i] and '(OH)' in self.short[1-i]:
-                        return 'neutr'
-                else:
-                    return 'double'
-                
-            for i in range(2):
-                if self.comp[0-i].bond == 'organic' and self.comp[1-i].atoms[0].sym == 'O':
-                    return 'combust'
-                elif self.comp[0-i].bond == 'single' and self.comp[1-i].bond == '*ionic':
-                    return 'single'
-                
-                
-    def refresh(self):
-        self.counter.clear()
-        for molecule in self.comp:
-            for atom in molecule.atoms:
-                if atom.structure is None:
-                    polyatomic = expand(atom.sym)
-                    for each in polyatomic[1:]:
-                        count = each[0] * atom.qtt * molecule.coef
-                        if each[1].sym not in self.counter:
-                            self.counter[each[1].sym] = count
-                        else:
-                            self.counter[each[1].sym] += count
-                else:
-                    count = atom.qtt * molecule.coef
-                    if atom.sym not in self.counter:
-                        self.counter[atom.sym] = count
-                    else:
-                        self.counter[atom.sym] += count
+    def reaction(self) -> str:
+        if len(self.molecule)==1 and len(self.molecule[0].atoms)==2:
+            return 'demoleculeostion'
+        elif len(self.molecule) == 2:
+            if self.molecule[0].bond == self.molecule[1].bond == 'single':
+                charge = self.molecule[0].atoms[0].charge.head * self.molecule[1].atoms[0].charge.head
+                return '*combination' if charge<0 else 'combination'
+            elif self.molecule[0].bond == self.molecule[1].bond == '*ionic':
+                check = ['(OH)' in self.molecule[0-i].short and 'H' in self.molecule[1-i].short for i in range(2)]
+                return 'neutralization' if True in check else 'double'
+            elif sum(['O2' in self.molecule[0-i].short and self.molecule[1-i].bond=='organic' for i in range(2)]):
+                return 'combustion'
+            elif sum([self.molecule[0-i].bond=='single' and self.molecule[1-i].bond=='*ionic' for i in range(2)]):
+                if self.molecule[1].bond=='single':
+                    self.molecule[0], self.molecule[1] = self.molecule[1], self.molecule[0]
+                try:
+                    check = (
+                        Table.activity.index(self.molecule[1].atoms[0].symbol) -
+                        Table.activity.index(self.molecule[0].atoms[0].symbol)
+                    )
+                except Exception:
+                    check = -1
+                return '*single' if check > 0 else 'single'
+        return 'unknown'
+    
 
-
-    def predict(self):
-        def decompose():
-            a = f'{self.comp[0].atoms[0].sym}{self.comp[0].atoms[0].qtt}'
-            b = f'{self.comp[0].atoms[1].sym}{self.comp[0].atoms[1].qtt}'
-            product = Equation([a, b])
-            return product
-
-
-        def combine():
-            product = Equation([f'({self.comp[0].atoms[0].sym})({self.comp[1].atoms[0].sym})'])
-            return product
-        
-        
-        def combust():
-            for molecule in self.short:
-                product = Equation(['H2O', 'CO2', 'SO2']) if 'S' in molecule else Equation(['H2O', 'CO2'])
-            return product
-                
-
-        def single():
-            if len(self.comp[0].atoms) > len(self.comp[1].atoms):
-                self.comp[0], self.comp[1] = self.comp[1], self.comp[0]
+    @property
+    def prediction(self) -> object:
+        if self.reaction == 'demoleculeostion':
+            product = [i.symbol for i in self.molecule[0].atoms]
+            return deepcopy(Equation(product).rectify(False))
+        elif 'combination' in self.reaction:
+            product = [''.join([i.atoms[0].symbol for i in self.molecule])]
+            return deepcopy(Equation(product).rectify(False))
+        elif self.reaction == 'combustion':
+            check = sum('S' in i for i in self.short)
+            product = ['H2O', 'CO2', 'SO2'] if check else ['H2O', 'CO2']
+            return deepcopy(Equation(product).rectify(False))
+        elif self.reaction == 'neutralization':
+            neg, pos = self.molecule[0].atoms[0].symbol, self.molecule[1].atoms[1].symbol
+            temp = self.molecule[1].atoms[0].symbol+self.molecule[0].atoms[1].symbol if 'H' in neg else neg+pos
+            product = ['H2O', temp]
+            return deepcopy(Equation(product).rectify(False))
+        elif self.reaction=='double' or self.reaction=='*single':
             product = deepcopy(self)
-            if Table.activity.index(self.comp[0].atoms[0].sym) < Table.activity.index(self.comp[1].atoms[1].sym):
-                product.comp[0].atoms[0], product.comp[1].atoms[1] = product.comp[1].atoms[1], product.comp[0].atoms[0]
-            return product
-        
-
-        def neutralize():
-            if self.comp[0].atoms[0].sym == 'OH':
-                salt = f'({self.comp[0].atoms[1].sym})({self.comp[1].atoms[0].sym})'
-            else:
-                salt = f'({self.comp[0].atoms[0].sym})({self.comp[1].atoms[1].sym})'
-            product = Equation([salt, 'H2O'])
-            return product
-            
-
-        def double():
-            product = deepcopy(self)
-            product.comp[0].atoms[0], product.comp[1].atoms[0] = product.comp[1].atoms[0], product.comp[0].atoms[0]
-            return product
-        
-        if self.reaction == 'decom':
-            product = decompose()
-        elif self.reaction == '*comb':
-            product = combine()
-        elif self.reaction == 'combust':
-            product = combust()
-        elif self.reaction == 'single':
-            product = single()
-        elif self.reaction == 'neutr':
-            product = neutralize()
-        elif self.reaction == 'double':
-            product = double()
+            product.molecule[0].atoms[0], product.molecule[1].atoms[0] = product.molecule[1].atoms[0], product.molecule[0].atoms[0]
+            return product.rectify(False)
         else:
-            product = None
+            return Equation.null('0')
+        
 
-        if product is not None:
-            for i in range(len(product.comp)):
-                product.comp[i] = product.comp[i].rectify(False)
-
-        return product
-
+    @property
+    def count(self):
+        counter = {}
+        for each in self.molecule:
+            for key, value in each.count.items():
+                counter[key] = counter[key]+value if key in counter else value
+        return counter
+    
 
     def balance(self, manual=False, attemps=40):
-        product =  self.predict() if manual == False else Equation(manual)
-        reactant = deepcopy(self)
-        length = len(reactant.comp) + len(product.comp)
-
-        for i in it.product(range(1, attemps+1), repeat=length):
-            reactant.comp[0].coef = i[0]
-            product.comp[0].coef = i[1]
-            if length >= 3:
-                if len(reactant.comp) == 2:
-                    reactant.comp[1].coef = i[2]
-                else:
-                    product.comp[1].coef = i[2]
-            if length >= 4:
-                product.comp[1].coef = i[3]
-            if length >= 5:
-                if len(reactant.comp) == 3:
-                    reactant.comp[2].coef = i[4]
-                else:
-                    product.comp[2].coef = i[4]
-
-            reactant.refresh()
-            product.refresh()
+        reactant = deepcopy(self.rectify(True))
+        product = deepcopy(Equation(manual)) if manual else reactant.prediction
+        length = len(reactant.molecule) + len(product.molecule)
         
-            if reactant.counter == product.counter:
+        for i in it.product(range(1, attemps+1), repeat=length):
+            reactant.molecule[0].coef = i[0]
+            product.molecule[0].coef = i[1]
+
+            if length >= 3:
+                if len(reactant.molecule) == 2:
+                    reactant.molecule[1].coef = i[2]
+                else:
+                    product.molecule[1].coef = i[2]
+            if length >= 4:
+                product.molecule[1].coef = i[3]
+            if length >= 5:
+                if len(reactant.molecule) == 3:
+                    reactant.molecule[2].coef = i[4]
+                else:
+                    product.molecule[2].coef = i[4]
+
+            if reactant.count == product.count:
                 return reactant, product
+            
+        else:
+            return self, Equation.null('0')

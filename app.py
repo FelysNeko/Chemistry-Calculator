@@ -1,54 +1,47 @@
 from flask import Flask, render_template, request, flash
 import api.chemistry as chem
 
+
 app = Flask(__name__)
-app.secret_key = "manbearpig_MUDMAN888"
+app.secret_key = "ELYSIA IS MY WAIFU"
+
 
 @app.route("/")
 def index():
-    
     return render_template("index.html")
+
 
 @app.route("/equation", methods=['POST', 'GET'])
 def equation():
-    
     action = str(request.form["action"])
-    m1 = str(request.form["molecule1"])
-    m2 = str(request.form["molecule2"])
-    if (not (bool(chem.expand(m1)) and bool(chem.expand(m2)))):
-        flash("At least one molecule is incorrect.")
-        return render_template("index.html")
-    equation = chem.Equation([m1, m2])
-    if (action == "predict"):
-        result = equation.predict().short[0]
-        for i in range(1, len(equation.predict().short)):
-            result = result + '+' + equation.predict().short[i]
+    equation = chem.Equation([request.form["molecule1"], request.form["molecule2"]]).rectify(True)
 
+    if True in [i==chem.Molecule.null('1') for i in equation.molecule]:
+        flash("At least one molecule is incorrect")
+        return render_template("index.html")
+    
+    if (action == "predict"):
+        result = ' + '.join(equation.short) + ' -> ' + ' + '.join(equation.prediction.short)
     elif (action == "balance"):
-        re, pr = equation.balance()
-        re = re.short
-        pr = pr.short
-        result = re[0]
-        for i in range(1, len(re)):
-            result = result + '+' + re[i]
-        result = result + ' → '
-        result = result + pr[0]
-        for i in range(1, len(pr)):
-            result = result + '+' + pr[i]
+        re, pr = equation.balance(manual=False)
+        result = ' + '.join(re.short) + ' -> ' + ' + '.join(pr.short)
     else:
         result = "error"
-    flash(result)
 
+    flash(result)
     return render_template("index.html")
+
 
 @app.route("/property", methods=['POST', 'GET'])
 def property():
     action = str(request.form["action"])
-    molecule = chem.Molecule(str(request.form["molecule"]))
-    if (not bool(chem.expand(str(request.form["molecule"])))):
-        flash("Invalid molecule. ")
+    molecule = chem.Molecule(request.form["molecule"])
+
+    if molecule == chem.Molecule.null('1').rectify(True):
+        flash("Invalid molecule")
         return render_template("index.html")
-    elif (action == "mass"):
+    
+    if (action == "mass"):
         result = molecule.mass
     elif (action == "solubility"):
         result = molecule.solubility
@@ -56,5 +49,6 @@ def property():
         result = molecule.bond
     else:
         result = "error"
-    flash(str(result))
+
+    flash(molecule.short + ': ' + str(result))
     return render_template("index.html")
