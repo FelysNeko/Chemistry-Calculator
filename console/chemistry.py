@@ -5,7 +5,7 @@ import itertools as it
 
 DIATOMIC = ['O', 'N', 'H', 'F', 'Cl', 'I', 'Br']
 ACTIVITY = ['Li', 'K', 'Ba', 'Sr', 'Ca', 'Na', 'Mg', 'Al', 'Zn', 'Cr', 'Fe', 'Cd', 'Co', 'Ni', 'Sn', 'Pb', 'H', 'Cu', 'Hg', 'Ag', 'Pt', 'Au', 'F', 'Cl', 'Br', 'I']
-PATH = '/Users/jhannykin/Files/Computing/Python/Stoichiometry/data.csv'
+PATH = 'data.csv'
 TABLE = {}
 TEXT = '''NOTE: THIS PROGRAM ONLY SUPPORT CHEM11 STOICHIOMETRY >_<
 -> MODE CODE[1]: Stoichiometry calulator (everything in gram)
