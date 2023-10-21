@@ -2,9 +2,25 @@
 
 A Calculator that Solves Grade 11 Chemistry Problems
 
-### Web Application Version(v0.2)
+## Web Application Version(v0.3)
 
-You can run the flask development server in the directory of this project to run the web app. Navigate to the project directory.
+This app now has separate React front-end and Flask back-end, connected via REST API.
+
+To run locally, run local server of back-end and front-end separately.
+
+### Backend
+Navigate to /server/ and run
+```shell
+python3 -m venv .venv
+. .venv/bin/activate
+pip install Flask
+```
+
+### Frontend
+Navigate to /client/ and run
+```shell
+npm start
+```
 
 Module dependence
 ```shell
