@@ -6,11 +6,8 @@ import { TextField, Button } from '@mui/material';
 function App() {
   return (
     <>
-    <head>
-      <meta name="viewport" content="initial-scale=1, width=device-width" />
-    </head>
-    <EquationForm />
-    <MoleculeForm />
+      <EquationForm />
+      <MoleculeForm />
     </>
   );
 }
