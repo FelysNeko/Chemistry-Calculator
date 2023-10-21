@@ -22,14 +22,6 @@ Navigate to /client/ and run
 npm start
 ```
 
-Module dependence
-```shell
-pip3 install Flask
-```
-Run the Flask development server
-```shell
-flask run
-```
 <br>
 
 ### API Version(v1.1)
