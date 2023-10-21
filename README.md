@@ -24,7 +24,7 @@ npm start
 
 <br>
 
-### API Version(v1.1)
+## API Version(v1.1)
 
 You may import this module and use it in jupyter notebook, see all available exmaples in example.py. The website is based on it.
 
@@ -33,7 +33,7 @@ import api.chemistry as chem
 ```
 <br>
 
-### Command Line Version(v4.1)
+## Command Line Version(v4.1)
 
 Execute the command line version in terminal. Make sure you run the chemistry.py under 'colnsole' folder. This was the oldest code, and I made the very first version one year ago which is the time that I don't even know OOP. However, it provided me with lots of fundamental support for any further development like the API version.
 
