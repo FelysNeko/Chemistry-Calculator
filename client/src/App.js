@@ -99,7 +99,7 @@ export function MoleculeForm() {
       <TextField 
          name="molecule" label="Substance (Molecule/Element)" />
       <hr />
-      <label for="action">Determin:</label>
+      <label for="action">Determin: </label>
         <select name="action">
           <option value="mass">Mass</option>
           <option value="solubility">Solubility</option>
