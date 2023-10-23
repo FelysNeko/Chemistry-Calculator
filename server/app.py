@@ -1,12 +1,12 @@
-from flask import Flask, render_template, request, flash, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-import api.chemistry as chem
+from api.chemistry import Molecule, Equation
 from api.form import res
 
 
 app = Flask(__name__)
-
 CORS(app)
+
 
 #/api/equation
 @app.route("/api/equation", methods=['POST'])
@@ -16,9 +16,9 @@ def equation():
     data =  request.get_json()
 
     action = str(data["action"])
-    equation = chem.Equation([data["molecule1"], data["molecule2"]]).rectify(True)
+    equation = Equation([data["molecule1"], data["molecule2"]]).rectify(True)
 
-    if True in [i==chem.Molecule.null('1') for i in equation.molecule]:
+    if Equation.isna(equation):
         return jsonify(res('At least one molecule is incorrect', False))
     
     if (action == "predict"):
@@ -40,9 +40,9 @@ def property():
     data =  request.get_json()
 
     action = str(data["action"])
-    molecule = chem.Molecule(data["molecule"])
+    molecule = Molecule(data["molecule"]).rectify(True)
 
-    if molecule == chem.Molecule.null('1').rectify(True):
+    if Molecule.isna(molecule):
         return jsonify(res('Invalid molecule', False))
     
     if (action == "mass"):
@@ -55,6 +55,7 @@ def property():
         return jsonify(res('error', False))
 
     return jsonify(res(str(result), True))
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=8080)

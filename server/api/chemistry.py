@@ -1,5 +1,4 @@
 from .data import *
-from copy import deepcopy
 import itertools as it
 
 
@@ -26,7 +25,7 @@ class Molecule:
         self.atoms = data
 
     
-    def __eq__(self, __value: object) -> bool:
+    def __eq__(self, __value:object) -> bool:
         return (
             self.coef == __value.coef and
             self.atoms == __value.atoms
@@ -78,15 +77,7 @@ class Molecule:
             for rule in Table.solubility:
                 if pos in rule.positive and neg in rule.negative:
                     return True
-            else:
-                return False
-        else:
-            return False
-        
-
-    @staticmethod
-    def null(value:str) -> object:
-        return deepcopy(Molecule(value))
+        return False
     
 
     @property
@@ -97,6 +88,14 @@ class Molecule:
                 counter[key] = counter[key]+value if key in counter else value
         result = {key:value*self.coef for key, value in counter.items()}
         return result
+    
+
+    def has(self, atom:str) -> bool:
+        for each in self.atoms:
+            if each.symbol == atom:
+                return True
+        else:
+            return False
 
 
     def rectify(self, flag:bool=True) -> object:
@@ -113,6 +112,16 @@ class Molecule:
         elif self.bond=='single' and self.atoms[0].quantity==1 and self.atoms[0].symbol in Table.diatomic:
             self.atoms[0].quantity = 2
         return self
+    
+
+    @staticmethod
+    def null(value:str) -> object:
+        return Molecule(value)
+    
+
+    @staticmethod
+    def isna(x:object) -> bool:
+        return True if isinstance(x, Molecule) and not len(x.atoms) else False
 
 
 
@@ -125,11 +134,6 @@ class Equation:
         for each in self.molecule:
             each.rectify(flag)
         return self
-
-
-    @staticmethod
-    def null(value:str) ->object:
-        return deepcopy(Equation(value))
 
 
     @property
@@ -145,15 +149,15 @@ class Equation:
     @property
     def reaction(self) -> str:
         if len(self.molecule)==1 and len(self.molecule[0].atoms)==2:
-            return 'demoleculeostion'
+            return 'decomposition'
         elif len(self.molecule) == 2:
             if self.molecule[0].bond == self.molecule[1].bond == 'single':
                 charge = self.molecule[0].atoms[0].charge.head * self.molecule[1].atoms[0].charge.head
                 return '*combination' if charge<0 else 'combination'
             elif self.molecule[0].bond == self.molecule[1].bond == '*ionic':
-                check = ['(OH)' in self.molecule[0-i].short and 'H' in self.molecule[1-i].short for i in range(2)]
+                check = [self.molecule[0-i].has('OH') and self.molecule[1-i].has('H') for i in range(2)]
                 return 'neutralization' if True in check else 'double'
-            elif sum(['O2' in self.molecule[0-i].short and self.molecule[1-i].bond=='organic' for i in range(2)]):
+            elif sum([self.molecule[0-i].has('O') and self.molecule[1-i].bond=='organic' for i in range(2)]):
                 return 'combustion'
             elif sum([self.molecule[0-i].bond=='single' and self.molecule[1-i].bond=='*ionic' for i in range(2)]):
                 if self.molecule[1].bond=='single':
@@ -165,27 +169,27 @@ class Equation:
                     )
                 except Exception:
                     check = -1
-                return '*single' if check > 0 else 'single'
+                return '*single' if check>0 else 'single'
         return 'unknown'
     
 
     @property
     def prediction(self) -> object:
-        if self.reaction == 'demoleculeostion':
+        if self.reaction == 'decomposition':
             product = [i.symbol for i in self.molecule[0].atoms]
-            return deepcopy(Equation(product).rectify(False))
+            return Equation(product).rectify(False)
         elif 'combination' in self.reaction:
             product = [''.join([i.atoms[0].symbol for i in self.molecule])]
-            return deepcopy(Equation(product).rectify(False))
+            return Equation(product).rectify(False)
         elif self.reaction == 'combustion':
-            check = sum('S' in i for i in self.short)
+            check = sum(['S' in i for i in self.short])
             product = ['H2O', 'CO2', 'SO2'] if check else ['H2O', 'CO2']
-            return deepcopy(Equation(product).rectify(False))
+            return Equation(product).rectify(False)
         elif self.reaction == 'neutralization':
             neg, pos = self.molecule[0].atoms[0].symbol, self.molecule[1].atoms[1].symbol
             temp = self.molecule[1].atoms[0].symbol+self.molecule[0].atoms[1].symbol if 'H' in neg else neg+pos
             product = ['H2O', temp]
-            return deepcopy(Equation(product).rectify(False))
+            return Equation(product).rectify(False)
         elif self.reaction=='double' or self.reaction=='*single':
             product = deepcopy(self)
             product.molecule[0].atoms[0], product.molecule[1].atoms[0] = product.molecule[1].atoms[0], product.molecule[0].atoms[0]
@@ -203,8 +207,8 @@ class Equation:
         return counter
     
 
-    def balance(self, manual=False, attemps=40):
-        reactant = deepcopy(self.rectify(True))
+    def balance(self, manual:bool=False, attemps:int=40):
+        reactant = deepcopy(self)
         product = deepcopy(Equation(manual)) if manual else reactant.prediction
         length = len(reactant.molecule) + len(product.molecule)
         
@@ -225,8 +229,19 @@ class Equation:
                 else:
                     product.molecule[2].coef = i[4]
 
-            if reactant.count == product.count:
+            if reactant.count==product.count and len(reactant.count)+len(product.count):
                 return reactant, product
             
         else:
             return self, Equation.null('0')
+
+
+    @staticmethod
+    def null(value:str) -> object:
+        return Equation([value])
+    
+
+    @staticmethod
+    def isna(x:object) -> bool:
+        return True if isinstance(x, Equation) and sum([Molecule.isna(i) for i in x.molecule]) else False
+    

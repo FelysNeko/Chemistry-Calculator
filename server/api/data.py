@@ -3,9 +3,9 @@ import re
 
 def lookup(molecule:str) -> object:
     if molecule in Table.periodic:
-        return Table.periodic[molecule]
+        return deepcopy(Table.periodic[molecule])
     else:
-        return Atom.null(0)
+        return Atom.null('0')
 
 
 
@@ -17,7 +17,7 @@ def parse(molecule:str) -> tuple:
     
     cvt = lambda x:1 if x=='' else int(x)
     def shrink(name:str, coef:int) -> Atom:
-        atom = deepcopy(lookup(name))
+        atom = lookup(name)
         atom.quantity = cvt(coef)
         return atom
     
@@ -45,11 +45,11 @@ class Table:
 
 
 class Charge:
-    def __init__(self, data: list) -> None:
+    def __init__(self, data:list) -> None:
         self.data = [int(i) for i in data]
 
 
-    def __eq__(self, __value: object) -> bool:
+    def __eq__(self, __value:object) -> bool:
         return not sum([self.data[i]-__value.data[i] for i in range(3)])
 
 
@@ -70,7 +70,7 @@ class Charge:
 
 
 class Atom:
-    def __init__(self, data: list) -> None:
+    def __init__(self, data:list) -> None:
         self.quantity = 0
         self.symbol = str(data[0])
         self.number = int(data[1])
@@ -79,7 +79,7 @@ class Atom:
         self.structure = str(data[6])
 
 
-    def __eq__(self, __value: object) -> bool:
+    def __eq__(self, __value:object) -> bool:
         return (
             self.quantity == __value.quantity and
             self.symbol == __value.symbol and
@@ -107,8 +107,13 @@ class Atom:
             
 
     @staticmethod
-    def null(value: str) -> object:
+    def null(value:str) -> object:
         return Atom([value]*7)
+    
+
+    @staticmethod
+    def isna(x:object) -> bool:
+        return True if isinstance(x, Atom) and x.symbol.isdigit() else False
 
 
 
@@ -119,7 +124,7 @@ class Rule:
         else:
             self.negative = data[0].split(',')
 
-        if '~' in data[1]: 
+        if '~' in data[1]:
             temp = data[1][1:].split(',')
             self.positive = [i for i in Table.cation if i not in temp]
         elif data[1] == 'cation':
