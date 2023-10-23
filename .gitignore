@@ -26,4 +26,5 @@ server/venv/
 
 # Pycache
 /server/__pycache__
+/server/api/__pycache__
 /api/__pycache__
