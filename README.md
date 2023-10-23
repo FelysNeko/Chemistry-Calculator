@@ -1,6 +1,6 @@
 # Chemistry-Calculator
 
-A Calculator that Solves Grade 11 Chemistry Problems
+A Calculator that Solves Basic Chemistry Problems
 
 ## Web Application Version(v0.3)
 
@@ -9,7 +9,7 @@ This app now has separate React front-end and Flask back-end, connected via REST
 To run locally, run local server of back-end and front-end separately.
 
 ### Back-end
-Navigate to server/ and run the following code to install dependencies
+Navigate to ./server and run the following code to install dependencies
 ```shell
 python3 -m venv .venv
 . .venv/bin/activate
@@ -21,19 +21,19 @@ python app.py
 ```
 
 ### Front-end
-Navigate to client/ and run
+Navigate to ./client and run
 ```shell
 npm start
 ```
 
 <br>
 
-## API Version(v1.1)
+## API Version(v1.2)
 
-You may import this module and use it in jupyter notebook, see all available exmaples in example.py. The website is based on it.
+You may import this module and use it in jupyter notebook, see all available exmaples in example.py. The website is based on it. Please only import the class or function you need.
 
 ```python3
-import api.chemistry as chem
+from api.chemistry import Molecule, Equation, lookup
 ```
 <br>
 
