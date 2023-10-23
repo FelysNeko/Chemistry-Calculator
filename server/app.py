@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, flash, jsonify
 from flask_cors import CORS
 import api.chemistry as chem
+from api.form import res
 
 
 app = Flask(__name__)
@@ -14,13 +15,7 @@ def equation():
     equation = chem.Equation([request.form["molecule1"], request.form["molecule2"]]).rectify(True)
 
     if True in [i==chem.Molecule.null('1') for i in equation.molecule]:
-        return jsonify(
-            {
-                'result' : "",
-                'msg' : "At least one molecule is incorrect",
-                'success' : False
-            }
-        )
+        return jsonify(res('At least one molecule is incorrect', False))
     
     if (action == "predict"):
         result = ' + '.join(equation.short) + ' -> ' + ' + '.join(equation.prediction.short)
@@ -28,15 +23,10 @@ def equation():
         re, pr = equation.balance(manual=False)
         result = ' + '.join(re.short) + ' -> ' + ' + '.join(pr.short)
     else:
-        result = "error"
+        return jsonify(res('error', False))
 
-    return jsonify(
-        {
-            'result' : result,
-            'msg' : "",
-            'success' : True
-        }
-    )
+    return jsonify(res(result, True))
+
 
 #/api/property
 @app.route("/api/property", methods=['POST'])
@@ -45,11 +35,7 @@ def property():
     molecule = chem.Molecule(request.form["molecule"])
 
     if molecule == chem.Molecule.null('1').rectify(True):
-        return jsonify( {
-            'result' : "",
-            'msg' : "Invalid molecule",
-            'success' : False
-        })
+        return jsonify(res('Invalid molecule', False))
     
     if (action == "mass"):
         result = molecule.mass
@@ -58,17 +44,9 @@ def property():
     elif (action == "bond"):
         result = molecule.bond
     else:
-        return jsonify( {
-            'result' : "",
-            'msg' : "Error",
-            'success' : False
-        })
+        return jsonify(res('error', False))
 
-    return jsonify( {
-        'result' : str(result),
-        'msg' : "",
-        'success' : True
-    })
+    return jsonify(res(str(result), True))
 
 if __name__ == "__main__":
     app.run(debug=True, port=8080)
