@@ -11,8 +11,12 @@ CORS(app)
 #/api/equation
 @app.route("/api/equation", methods=['POST'])
 def equation():
-    action = str(request.form["action"])
-    equation = chem.Equation([request.form["molecule1"], request.form["molecule2"]]).rectify(True)
+    if not request.is_json: 
+        return "Request type not supported", 400
+    data =  request.get_json()
+
+    action = str(data["action"])
+    equation = chem.Equation([data["molecule1"], data["molecule2"]]).rectify(True)
 
     if True in [i==chem.Molecule.null('1') for i in equation.molecule]:
         return jsonify(res('At least one molecule is incorrect', False))
@@ -31,8 +35,12 @@ def equation():
 #/api/property
 @app.route("/api/property", methods=['POST'])
 def property():
-    action = str(request.form["action"])
-    molecule = chem.Molecule(request.form["molecule"])
+    if not request.is_json: 
+        return "Request type not supported", 400
+    data =  request.get_json()
+
+    action = str(data["action"])
+    molecule = chem.Molecule(data["molecule"])
 
     if molecule == chem.Molecule.null('1').rectify(True):
         return jsonify(res('Invalid molecule', False))

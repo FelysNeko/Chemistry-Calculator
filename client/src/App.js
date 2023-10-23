@@ -22,8 +22,19 @@ export function EquationForm() {
     const form = e.target;
     const formData = new FormData(form);
 
+     // plain object:
+     const formJson = Object.fromEntries(formData.entries());
+     console.log(formJson);
+
     // Pass formData as a fetch body directly:
-    fetch('http://127.0.0.1:8080/api/equation', { method: form.method, body: formData })
+    fetch('http://127.0.0.1:8080/api/equation', {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formJson),
+    })
       .then((Response)=>Response.json()).then((data) => {
         
         console.log(data);
@@ -34,10 +45,6 @@ export function EquationForm() {
           alert(data.msg);
         }
       });
-
-    // plain object:
-    const formJson = Object.fromEntries(formData.entries());
-    console.log(formJson);
   }
 
   return (
@@ -71,22 +78,30 @@ export function MoleculeForm() {
     // Read the form data
     const form = e.target;
     const formData = new FormData(form);
-
-    // Pass formData as a fetch body directly:
-    fetch('http://127.0.0.1:8080/api/property', { method: form.method, body: formData })
-      .then((Response)=>Response.json()).then((data) => {
-        if (data.success) {
-          setResult(data.result);
-          
-        } else {
-          alert(data.msg);
-        }
-        console.log(data);
-      });
-
     // plain object:
     const formJson = Object.fromEntries(formData.entries());
     console.log(formJson);
+
+    // Pass formData as a fetch body directly:
+    fetch('http://127.0.0.1:8080/api/property', { 
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formJson),
+    })
+    .then((Response)=>Response.json()).then((data) => {
+      if (data.success) {
+        setResult(data.result);
+        
+      } else {
+        alert(data.msg);
+      }
+      console.log(data);
+    });
+
+    
   }
 
   return (
