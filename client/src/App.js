@@ -23,7 +23,7 @@ export function EquationForm() {
     const formData = new FormData(form);
 
     // Pass formData as a fetch body directly:
-    fetch('http://127.0.0.1:5000/api/equation', { method: form.method, body: formData })
+    fetch('http://127.0.0.1:8080/api/equation', { method: form.method, body: formData })
       .then((Response)=>Response.json()).then((data) => {
         
         console.log(data);
@@ -73,7 +73,7 @@ export function MoleculeForm() {
     const formData = new FormData(form);
 
     // Pass formData as a fetch body directly:
-    fetch('http://127.0.0.1:5000/api/property', { method: form.method, body: formData })
+    fetch('http://127.0.0.1:8080/api/property', { method: form.method, body: formData })
       .then((Response)=>Response.json()).then((data) => {
         if (data.success) {
           setResult(data.result);

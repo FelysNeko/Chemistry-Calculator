@@ -9,11 +9,15 @@ This app now has separate React front-end and Flask back-end, connected via REST
 To run locally, run local server of back-end and front-end separately.
 
 ### Back-end
-Navigate to server/ and run
+Navigate to server/ and run the following code to install dependencies
 ```shell
 python3 -m venv .venv
 . .venv/bin/activate
 pip install Flask
+```
+and then run
+```shell
+python app.py
 ```
 
 ### Front-end
