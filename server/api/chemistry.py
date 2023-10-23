@@ -110,7 +110,7 @@ class Molecule:
                 x = lcm(abs(self.atoms[0].charge.head), abs(self.atoms[1].charge.head))
                 self.atoms[0].quantity = abs(int(x/self.atoms[0].charge.head))
                 self.atoms[1].quantity = abs(int(x/self.atoms[1].charge.head))
-        elif self.bond=='single' and self.atoms[0].symbol in Table.diatomic:
+        elif self.bond=='single' and self.atoms[0].quantity==1 and self.atoms[0].symbol in Table.diatomic:
             self.atoms[0].quantity = 2
         return self
 
