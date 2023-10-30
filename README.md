@@ -13,7 +13,7 @@ Navigate to ./server and run the following code to install dependencies
 ```shell
 python3 -m venv .venv
 . .venv/bin/activate
-pip install Flask
+pip install Flask sympy
 ```
 and then run
 ```shell
