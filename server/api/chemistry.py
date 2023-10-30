@@ -1,5 +1,5 @@
 from .data import *
-import itertools as it
+import sympy as sp
 
 
 
@@ -199,41 +199,33 @@ class Equation:
         
 
     @property
-    def count(self):
-        counter = {}
-        for each in self.molecule:
-            for key, value in each.count.items():
-                counter[key] = counter[key]+value if key in counter else value
-        return counter
+    def count(self) -> list: 
+        return [i.count for i in self.molecule]
     
 
-    def balance(self, manual:bool=False, attemps:int=40):
+    def balance(self, manual:bool=False) -> tuple:
         reactant = deepcopy(self)
         product = deepcopy(Equation(manual)) if manual else reactant.prediction
-        length = len(reactant.molecule) + len(product.molecule)
-        
-        for i in it.product(range(1, attemps+1), repeat=length):
-            reactant.molecule[0].coef = i[0]
-            product.molecule[0].coef = i[1]
+        count = reactant.count + product.count
 
-            if length >= 3:
-                if len(reactant.molecule) == 2:
-                    reactant.molecule[1].coef = i[2]
-                else:
-                    product.molecule[1].coef = i[2]
-            if length >= 4:
-                product.molecule[1].coef = i[3]
-            if length >= 5:
-                if len(reactant.molecule) == 3:
-                    reactant.molecule[2].coef = i[4]
-                else:
-                    product.molecule[2].coef = i[4]
+        key = {k for i in count for k in i.keys()}
+        m = sp.Matrix([[x[s] if s in x else 0 for x in count] for s in key])
+        result = sp.linsolve(m)
 
-            if reactant.count==product.count and len(reactant.count)+len(product.count):
-                return reactant, product
-            
+        if len(result) == 1:
+            result = list(result)[0]
         else:
             return self, Equation.null('0')
+
+        multiple = sp.lcm([i.denominator for i in result])
+        coef = sp.Array(result) * multiple
+
+        for i in range(len(reactant.molecule)):
+            reactant.molecule[i].coef = coef[i]
+        for i in range(len(product.molecule)-1):
+            product.molecule[i].coef = abs(coef[i+len(reactant.molecule)])
+
+        return reactant, product
 
 
     @staticmethod
