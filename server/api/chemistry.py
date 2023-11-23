@@ -81,7 +81,7 @@ class Molecule:
     
 
     @property
-    def count(self):
+    def count(self) -> dict:
         counter = {}
         for each in self.atoms:
             for key, value in each.count.items():
