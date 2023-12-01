@@ -1,4 +1,4 @@
-from api.chemistry import lookup, Molecule, Equation
+from lib.chemistry import lookup, Molecule, Equation
 ''' Uncomment the line(s) you wish to try '''
 
 

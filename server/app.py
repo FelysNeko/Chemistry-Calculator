@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from api.chemistry import Molecule, Equation
-from api.form import res
+from lib.chemistry import Molecule, Equation
+from lib.form import res
 
 
 app = Flask(__name__)
