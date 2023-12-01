@@ -1,4 +1,4 @@
-from .core import Table, Molecule
-from .basis import lookup
+from .core import Molecule, Equation, balance
+from .basis import Table, lookup
 
 Table.initialize()

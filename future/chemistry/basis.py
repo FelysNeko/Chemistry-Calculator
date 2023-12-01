@@ -32,7 +32,7 @@ def parse(molecule:str) -> tuple:
 
 class Charge:
     def __init__(self, data:list) -> None:
-        self.__data = [int(i) for i in data]
+        self.__data:list[int] = [int(i) for i in data]
 
     def __eq__(self, __value:Charge) -> bool:
         return not sum([self.__data[i]-__value.__data[i] for i in range(3)])
@@ -57,12 +57,12 @@ class Charge:
 
 class Atom:
     def __init__(self, data:list) -> None:
-        self.quantity = 0
-        self.symbol = str(data[0])
-        self.number = int(data[1])
-        self.mass = float(data[2])
-        self.charge = Charge(data[3:6])
-        self.structure = str(data[6])
+        self.quantity:int = 0
+        self.symbol:str = str(data[0])
+        self.number:int = int(data[1])
+        self.mass:float = float(data[2])
+        self.charge:Charge = Charge(data[3:6])
+        self.structure:str = str(data[6])
 
     def __eq__(self, __value:Atom) -> bool:
         return (
