@@ -1,0 +1,2 @@
+Li,K,Ba,Sr,Ca,Na,Mg,Al,Zn,Cr,Fe,Cd,Co,Ni,Sn,Pb,H,Cu,Hg,Ag,Pt,Au,F,Cl,Br,I
+O,N,H,F,Cl,I,Br

@@ -1,0 +1,9 @@
+ClO3,NO3,ClO4:cation
+CH3COO:~Ag
+F:~Mg,Ca,Ba,Pb
+Br,Cl,I:~Ag,Pb,Hg2,Cu,Ti
+SO4:~Ca,Sr,Ba,Ra,Pb,Ag,Hg2
+S:Li,Na,K,Rb,Cs,Fr,H,NH4,Be,Mg,Ca,Sr,Ba,Ra
+OH:Li,Na,K,Rb,Cs,Fr,H,NH4,Sr,Ba,Ra,Ti
+CO3,PO4,SO3:Li,Na,K,Rb,Cs,Fr,H,NH4
+anion:Li,Na,K,Rb,Cs,Fr,H,NH4
